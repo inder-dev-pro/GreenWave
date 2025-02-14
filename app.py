@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import changefinder
 from scipy import stats
-
+st.set_page_config(page_title="GreenWave Appliance Fault Detector", layout="wide")
 # Load custom CSS
 with open("style.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
@@ -35,7 +35,7 @@ def detect_appliance_fault(col, df, _r=0.01, _order=1, _smooth=10):
     return None
 
 # Streamlit UI
-st.set_page_config(page_title="GreenWave Appliance Fault Detector", layout="wide")
+
 
 st.markdown("<h1 class='title'>🔍 GreenWave Appliance Fault Detector</h1>", unsafe_allow_html=True)
 st.markdown("<p class='description'>Upload your smart home dataset to detect faulty appliances based on power consumption patterns.</p>", unsafe_allow_html=True)
