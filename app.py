@@ -4,7 +4,7 @@ import changefinder
 from scipy import stats
 
 # Load custom CSS
-with open("styles.css") as f:
+with open("style.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # Function to detect appliance faults
