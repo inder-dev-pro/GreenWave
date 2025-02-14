@@ -4,16 +4,8 @@ from scipy import stats
 import numpy as np
 import pandas as pd
 
-# Set page config
-st.set_page_config(
-    page_title="GreenWave Appliances",
-    page_icon="🌿",
-    layout="wide"
-)
-
-# Title and description
-st.title("🌿 GreenWave Appliances")
-st.markdown("Monitor and analyze smart home appliance power consumption with automatic fault detection.")
+st.set_page_config(page_title="GreenWave Appliances")
+st.title("GreenWave Appliances Fault Detector")
 
 def preprocess_data(df):
     try:
@@ -29,14 +21,8 @@ def preprocess_data(df):
             df['Kitchen'] = df[['Kitchen 12','Kitchen 14','Kitchen 38']].sum(axis=1)
             df.drop(['Kitchen 12','Kitchen 14','Kitchen 38'], axis=1, inplace=True)
         
-        # Process timestamp
-        if 'time' not in df.columns:
-            st.error("Error: The CSV file must contain a 'time' column.")
-            return None
-            
         # Convert time column to datetime
         df['time'] = pd.DatetimeIndex(pd.date_range('2016-01-01 05:00', periods=len(df),  freq='min'))
-        
         return df
         
     except Exception as e:
@@ -70,58 +56,38 @@ def detect_appliance_fault(col, df, _r=0.01, _order=1, _smooth=10):
         last_power = ch_df[col].iloc[-1]
 
         if last_power > avg_power * 1.5:
-            status = "⚠️ Overconsumption Issue – Possible Fault!"
-            return {"appliance": col, "status": status, "data": ch_df}
+            return {"appliance": col, "status": "⚠️ Overconsumption Issue"}
         elif last_power < avg_power * 0.5:
-            status = "❌ Possible Malfunction – Underperforming or Disconnected!"
-            return {"appliance": col, "status": status, "data": ch_df}
-    return {"appliance": col, "status": "✅ Functioning normally", "data": ch_df}
+            return {"appliance": col, "status": "❌ Possible Malfunction"}
+        else:
+            return {"appliance": col, "status": "✅ Normal"}
+    return None
 
-# File upload section
-st.header("📤 Upload Data")
 uploaded_file = st.file_uploader("Upload your CSV file", type=['csv'])
 
 if uploaded_file is not None:
-    # Load and preprocess data
-    with st.spinner('Processing data...'):
+    with st.spinner('Analyzing appliances...'):
         df = pd.read_csv(uploaded_file, low_memory=False)
         df = preprocess_data(df)
         
         if df is not None:
-            st.success('Data processed successfully!')
+            # Get all numeric columns except 'time'
+            appliance_cols=df.columns[2:10]
             
-            # Get numeric columns for appliance selection
-            numeric_cols = df.select_dtypes(include=[np.number]).columns
-            appliance_cols = [col for col in numeric_cols if col != 'time']
+            # Check all appliances and show only those with issues
+            st.subheader("Detected Issues:")
+            issues_found = False
             
-            selected_appliances = st.multiselect(
-                "Select Appliances to Monitor",
-                options=appliance_cols,
-                default=appliance_cols[:2] if len(appliance_cols) >= 2 else appliance_cols
-            )
-
-            if selected_appliances:
-                # Main content area
-                col1, col2 = st.columns([2, 1])
-
-                with col1:
-                    st.header("📊 Current Consumption")
-                    st.line_chart(df.set_index('time')[selected_appliances])
-
-                with col2:
-                    st.header("🔍 Fault Detection")
-                    for appliance in selected_appliances:
-                        result = detect_appliance_fault(appliance, df)
-                        st.write(f"{appliance}: {result['status']}")
+            for appliance in appliance_cols:
+                result = detect_appliance_fault(appliance, df)
+                if result:  # Only show appliances with issues
+                    issues_found = True
+                    st.write(f"{result['appliance']}: {result['status']}")
+                else:
+                    st.write(f"{appliance}: ✅ Normal")
+            
+            if not issues_found:
+                st.success("No issues detected in any appliances.")
 
 else:
-    st.info("Please upload a CSV file to begin analysis. The file should contain:")
-    st.markdown("""
-    - A 'time' column with timestamps
-    - Power consumption data columns (in kW)
-    - Optional columns like 'Furnace 1', 'Furnace 2', etc.
-    """)
-
-# Footer
-st.markdown("---")
-st.markdown("Built with Streamlit by GreenWave Analytics Team 🌿")
+    st.info("Upload a CSV file to check for appliance faults")
